@@ -1,0 +1,44 @@
+stages:
+  - build
+  - push
+
+variables:
+  # Указываем имя вашего Docker-образа в GitLab Container Registry
+  DOCKER_IMAGE: "$CI_REGISTRY/$CI_PROJECT_PATH/telegram_sentry"
+  DOCKER_TAG: "latest"
+
+# Сборка Docker-образа
+build:
+  stage: build
+  image: docker:20.10.16  # Используем образ Docker для CI
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_DRIVER: overlay2
+  services:
+    - docker:20.10.16-dind  # Docker-in-Docker для сборки образов
+  script:
+    - echo "Сборка Docker-образа..."
+    - docker build -t $DOCKER_IMAGE:$DOCKER_TAG .
+  artifacts:
+    paths:
+      - Dockerfile
+      - docker-compose.yml
+
+# Публикация Docker-образа в GitLab Container Registry
+push:
+  stage: push
+  image: docker:20.10.16
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_DRIVER: overlay2
+  services:
+    - docker:20.10.16-dind
+  script:
+    - docker info
+    - docker build --rm --no-cache -t $CI_REGISTRY_IMAGE:latest .
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker push $CI_REGISTRY_IMAGE:latest
+    - docker tag $CI_REGISTRY_IMAGE:latest $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME

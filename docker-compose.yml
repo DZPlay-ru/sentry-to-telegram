@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  telegram-webhook:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      TELEGRAM_TOKEN: ""
+      CHAT_ID: ""
+      THREAD_ID: ""
+    restart: always
